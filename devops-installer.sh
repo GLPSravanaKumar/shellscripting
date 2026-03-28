@@ -51,7 +51,7 @@ install_docker_compose() {
 install_awscli() {
     header "Installing AWS CLI"
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    unzip awscliv2.zip
+    unzip awscliv2.zip > /dev/null
     sudo ./aws/install && success "AWS CLI" || error "AWS CLI"
 }
 
@@ -85,14 +85,14 @@ install_terraform() {
     wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
         | tee /etc/apt/sources.list.d/hashicorp.list
-    apt update && apt install -y terraform
+    apt update && apt install -y terraform > /dev/null
     success "Terraform"
 }
 
 # Install Nginx
 install_nginx() {
     header "Installing Nginx"
-    apt install -y nginx
+    apt install -y nginx > /dev/null
     systemctl enable nginx
     systemctl start nginx
     success "Nginx"
@@ -101,7 +101,7 @@ install_nginx() {
 # Install MySQL
 install_mysql() {
     header "Installing MySQL"
-    apt install -y mysql-server
+    apt install -y mysql-server > /dev/null
     systemctl enable mysql
     systemctl start mysql
     success "MySQL"
@@ -110,7 +110,7 @@ install_mysql() {
 # Install PostgreSQL
 install_postgres() {
     header "Installing PostgreSQL"
-    apt install -y postgresql postgresql-contrib
+    apt install -y postgresql postgresql-contrib > /dev/null
     systemctl enable postgresql
     systemctl start postgresql
     success "PostgreSQL"
@@ -119,35 +119,35 @@ install_postgres() {
 # Install Ansible
 install_ansible() {
     header "Installing Ansible"
-    apt install -y ansible && success "Ansible" || error "Ansible"
+    apt install -y ansible > /dev/null && success "Ansible" || error "Ansible"
 }
 
 # Install Jenkins
 install_jenkins() {
     header "Installing Jenkins"
-    apt install -y openjdk-17-jdk
-    curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io.key | tee \
-      /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+    apt install -y openjdk-17-jdk > /dev/null
+    curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
+    /usr/share/keyrings/jenkins-keyring.asc > /dev/null
     echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
-      https://pkg.jenkins.io/debian-stable binary/ | tee \
-      /etc/apt/sources.list.d/jenkins.list > /dev/null
-    apt update
-    apt install -y jenkins
-    systemctl enable jenkins
-    systemctl start jenkins
+    https://pkg.debian-stable binary/ | sudo tee \
+    /etc/apt/sources.list.d/jenkins.list > /dev/null
+    sudo apt update -y > /dev/null
+    sudo apt install -y jenkins > /dev/null
+    sudo systemctl enable jenkins
+    sudo systemctl start jenkins
     success "Jenkins"
 }
 
 # Install Maven
 install_maven() {
     header "Installing Maven"
-    apt install -y maven && success "Maven" || error "Maven"
+    apt install -y maven > /dev/null&& success "Maven" || error "Maven"
 }
 
 # Install Tomcat
 install_tomcat() {
     header "Installing Tomcat"
-    apt install -y tomcat9 tomcat9-admin
+    apt install -y tomcat9 tomcat9-admin > /dev/null
     systemctl enable tomcat9
     systemctl start tomcat9
     success "Tomcat"
@@ -159,7 +159,7 @@ install_sonarqube() {
     apt install -y openjdk-17-jdk unzip wget
     cd /opt
     wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-10.3.0.82913.zip
-    unzip sonarqube-*.zip
+    unzip sonarqube-*.zip > /dev/null
     mv sonarqube-* sonarqube
     success "SonarQube (manual start required)"
 }
