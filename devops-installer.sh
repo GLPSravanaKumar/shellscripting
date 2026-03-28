@@ -164,6 +164,47 @@ install_sonarqube() {
     success "SonarQube (manual start required)"
 }
 
+# Install Prometheus (basic setup)
+install_prometheus() {
+    header "Installing Prometheus"
+    useradd --no-create-home --shell /bin/false prometheus
+    cd /opt
+    wget https://github.com/prometheus/prometheus/releases/latest/download/prometheus-*.linux-amd64.tar.gz
+    tar xvf prometheus-*.linux-amd64.tar.gz > /dev/null
+    mv prometheus-* prometheus
+    chown -R prometheus:prometheus /opt/prometheus
+    cd prometheus
+    mv prometheus promtool /usr/local/bin/
+    mkdir -p /etc/prometheus
+    mkdir -p /var/lib/prometheus
+    cp prometheus.yml /etc/prometheus/
+    chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus
+    bash -c 'cat <<EOF > /etc/systemd/system/prometheus.service
+    [Unit]
+    Description=Prometheus Service
+    After=network-online.target
+
+    [Service]
+    User=prometheus
+    ExecStart=/usr/local/bin/prometheus \
+    --config.file=/etc/prometheus/prometheus.yml \
+    --storage.tsdb.path=/var/lib/prometheus/
+    Restart=always
+
+    [Install]
+    WantedBy=default.target
+    EOF'
+    systemctl daemon-reload
+    systemctl start prometheus
+    systemctl enable prometheus
+    success "Prometheus"
+}
+
+
+
+    
+    
+
 # Menu
 while true; do
     echo -e "\nSelect packages to install:"
@@ -183,7 +224,8 @@ while true; do
     echo "14. Maven"
     echo "15. Tomcat"
     echo "16. SonarQube"
-    echo "17. Install ALL"
+    echo "17. Prometheus"
+    echo "18. Install ALL"
     echo "0. Exit"
 
     read -p "Enter choice: " choice
@@ -205,7 +247,8 @@ while true; do
         14) install_maven ;;
         15) install_tomcat ;;
         16) install_sonarqube ;;
-        17)
+        17) install_prometheus ;;   
+        18)
             install_git
             install_docker
             install_docker_compose
