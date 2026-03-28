@@ -169,8 +169,10 @@ install_prometheus() {
     header "Installing Prometheus"
     useradd --no-create-home --shell /bin/false prometheus
     cd /opt
-    wget https://github.com/prometheus/prometheus/releases/latest/download/prometheus-*.linux-amd64.tar.gz
+    VERSION=$(curl -s https://api.github.com/repos/prometheus/prometheus/releases/latest | grep tag_name | cut -d '"' -f4)
+    wget https://github.com/prometheus/prometheus/releases/download/${VERSION}/prometheus-${VERSION#v}.linux-amd64.tar.gz
     tar xvf prometheus-*.linux-amd64.tar.gz > /dev/null
+    rm prometheus-*.linux-amd64.tar.gz
     mv prometheus-* prometheus
     chown -R prometheus:prometheus /opt/prometheus
     cd prometheus
@@ -179,7 +181,7 @@ install_prometheus() {
     mkdir -p /var/lib/prometheus
     cp prometheus.yml /etc/prometheus/
     chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus
-    bash -c 'cat <<EOF > /etc/systemd/system/prometheus.service
+    sudo bash -c 'cat <<EOF > /etc/systemd/system/prometheus.service
     [Unit]
     Description=Prometheus Service
     After=network-online.target
@@ -195,15 +197,94 @@ install_prometheus() {
     WantedBy=default.target
     EOF'
     systemctl daemon-reload
-    systemctl start prometheus
-    systemctl enable prometheus
+    systemctl start prometheus.service
+    systemctl enable prometheus.service
     success "Prometheus"
 }
 
+# Install Node Exporter (basic setup)
+install_node_exporter() {
+    header "Installing Node Exporter"
+    useradd --no-create-home --shell /bin/false node_exporter
+    cd /opt
+    VERSION=$(curl -s https://api.github.com/repos/prometheus/node_exporter/releases/latest | grep tag_name | cut -d '"' -f4)
+    wget https://github.com/prometheus/node_exporter/releases/download/${VERSION}/node_exporter-${VERSION#v}.linux-amd64.tar.gz
+    tar xvf node_exporter-*.linux-amd64.tar.gz > /dev/null
+    rm node_exporter-*.linux-amd64.tar.gz
+    mv node_exporter-* node_exporter
+    mv node_exporter/node_exporter /usr/local/bin/
+    chown -R node_exporter:node_exporter /opt/node_exporter
+    sudo bash -c 'cat <<EOF > /etc/systemd/system/node_exporter.service
+    [Unit]
+    Description=Node Exporter Service
+    After=network-online.target
 
+    [Service]
+    User=node_exporter
+    ExecStart=/usr/local/bin/node_exporter
+    Restart=always  
 
-    
-    
+    [Install]
+    WantedBy=default.target
+    EOF'
+    systemctl daemon-reload
+    systemctl start node_exporter.service
+    systemctl enable node_exporter.service
+    success "Node Exporter"
+}
+
+# Install Alertmanager (basic setup)
+install_alertmanager() {
+    header "Installing Alertmanager"
+    useradd --no-create-home --shell /bin/false alertmanager
+    cd /opt
+    VERSION=$(curl -s https://api.github.com/repos/prometheus/alertmanager/releases/latest | grep tag_name | cut -d '"' -f4)
+    wget https://github.com/prometheus/alertmanager/releases/download/${VERSION}/alertmanager-${VERSION#v}.linux-amd64.tar.gz
+    tar xvf alertmanager-*.linux-amd64.tar.gz > /dev/null
+    rm alertmanager-*.linux-amd64.tar.gz
+    mv alertmanager-* alertmanager
+    mv alertmanager/alertmanager /usr/local/bin/
+    chown -R alertmanager:alertmanager /opt/alertmanager
+    sudo bash -c 'cat <<EOF > /etc/systemd/system/alertmanager.service
+    [Unit]
+    Description=Alertmanager Service
+    After=network-online.target 
+
+    [Service]
+    User=alertmanager
+    ExecStart=/usr/local/bin/alertmanager \
+    --config.file=/opt/alertmanager/alertmanager.yml \
+    --storage.path=/opt/alertmanager/data
+    Restart=always
+
+    [Install]
+    WantedBy=default.target
+    EOF'
+    systemctl daemon-reload
+    systemctl start alertmanager.service
+    systemctl enable alertmanager.service
+    success "Alertmanager"
+}
+
+# Install grafana (basic setup)
+install_grafana() {
+    header "Installing Grafana"
+    apt install -y apt-transport-https software-properties-common > /dev/null
+    wget -q -O /usr/share/keyrings/grafana.key https://apt.grafana.com/gpg.key
+    echo "deb [signed-by=/usr/share/keyrings/grafana.key] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+    apt update -y
+    apt install -y grafana > /dev/null
+    systemctl daemon-reload
+    systemctl enable grafana-server.service
+    systemctl start grafana-server.service
+    success "Grafana"
+}
+
+# install netstat
+install_netstat() {
+    header "Installing net-tools (for netstat)"
+    apt install -y net-tools > /dev/null && success "net-tools" || error "net-tools"
+}
 
 # Menu
 while true; do
@@ -225,7 +306,11 @@ while true; do
     echo "15. Tomcat"
     echo "16. SonarQube"
     echo "17. Prometheus"
-    echo "18. Install ALL"
+    echo "18. Node Exporter"
+    echo "19. Alertmanager"
+    echo "20. Grafana"
+    echo "21. net-tools (for netstat)"
+    echo "22. Install ALL"
     echo "0. Exit"
 
     read -p "Enter choice: " choice
@@ -247,8 +332,12 @@ while true; do
         14) install_maven ;;
         15) install_tomcat ;;
         16) install_sonarqube ;;
-        17) install_prometheus ;;   
-        18)
+        17) install_prometheus ;;  
+        18) install_node_exporter ;;
+        19) install_alertmanager ;;
+        20) install_grafana ;;
+        21) install_netstat ;;   
+        22)
             install_git
             install_docker
             install_docker_compose
@@ -265,6 +354,11 @@ while true; do
             install_maven
             install_tomcat
             install_sonarqube
+            install_prometheus
+            install_node_exporter
+            install_alertmanager
+            install_grafana
+            install_netstat
             ;;
         0) exit 0 ;;
         *) echo "Invalid option" ;;
