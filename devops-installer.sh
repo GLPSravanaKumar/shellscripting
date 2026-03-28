@@ -23,6 +23,7 @@ function error() {
 # Update system
 header "Updating system"
 apt update -y && apt upgrade -y
+apt install -y curl wget unzip 
 
 # Install Git
 install_git() {
@@ -49,7 +50,9 @@ install_docker_compose() {
 # Install AWS CLI
 install_awscli() {
     header "Installing AWS CLI"
-    apt install -y awscli && success "AWS CLI" || error "AWS CLI"
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install && success "AWS CLI" || error "AWS CLI"
 }
 
 # Install kubectl
